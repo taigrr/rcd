@@ -184,7 +184,11 @@ func mask(_ context.Context, service string, opts Options) error {
 	if err != nil {
 		return err
 	}
-	return os.Chmod(p, 0o444)
+	info, err := os.Stat(p)
+	if err != nil {
+		return err
+	}
+	return os.Chmod(p, maskedMode(info.Mode()))
 }
 
 func unmask(_ context.Context, service string, opts Options) error {
@@ -192,7 +196,11 @@ func unmask(_ context.Context, service string, opts Options) error {
 	if err != nil {
 		return err
 	}
-	return os.Chmod(p, 0o755)
+	info, err := os.Stat(p)
+	if err != nil {
+		return err
+	}
+	return os.Chmod(p, unmaskedMode(info.Mode()))
 }
 
 func isMasked(service string, opts Options) (bool, error) {

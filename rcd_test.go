@@ -3,6 +3,7 @@ package rcd
 import (
 	"context"
 	"errors"
+	"os"
 	"testing"
 	"time"
 )
@@ -288,5 +289,69 @@ func TestEmptyServiceName(t *testing.T) {
 	}
 	if active {
 		t.Error("IsActive() with empty name = true, want false on non-BSD")
+	}
+}
+
+func TestMaskedMode(t *testing.T) {
+	tests := []struct {
+		name string
+		mode os.FileMode
+		want os.FileMode
+	}{
+		{
+			name: "preserves read write bits while clearing exec",
+			mode: 0o754,
+			want: 0o644,
+		},
+		{
+			name: "keeps already masked file unchanged",
+			mode: 0o640,
+			want: 0o640,
+		},
+		{
+			name: "preserves special bits",
+			mode: os.ModeSetuid | 0o755,
+			want: os.ModeSetuid | 0o644,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := maskedMode(tt.mode); got != tt.want {
+				t.Fatalf("maskedMode(%#o) = %#o, want %#o", tt.mode, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestUnmaskedMode(t *testing.T) {
+	tests := []struct {
+		name string
+		mode os.FileMode
+		want os.FileMode
+	}{
+		{
+			name: "restores exec bits from read bits",
+			mode: 0o644,
+			want: 0o755,
+		},
+		{
+			name: "keeps missing group and other read bits non-executable",
+			mode: 0o600,
+			want: 0o700,
+		},
+		{
+			name: "preserves special bits",
+			mode: os.ModeSetgid | 0o640,
+			want: os.ModeSetgid | 0o750,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := unmaskedMode(tt.mode); got != tt.want {
+				t.Fatalf("unmaskedMode(%#o) = %#o, want %#o", tt.mode, got, tt.want)
+			}
+		})
 	}
 }
