@@ -5,6 +5,10 @@ import (
 )
 
 var (
+	// ErrInvalidServiceName is returned when a service name is empty or
+	// contains path separators.
+	ErrInvalidServiceName = errors.New("invalid service name")
+
 	// ErrServiceNotFound is returned when the rc.d script does not exist
 	// in either /usr/local/etc/rc.d or /etc/rc.d.
 	ErrServiceNotFound = errors.New("service not found")
