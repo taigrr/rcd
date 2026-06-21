@@ -32,6 +32,9 @@ func rcDirs(opts Options) []string {
 }
 
 func scriptPath(service string, opts Options) (string, error) {
+	if err := validateServiceName(service); err != nil {
+		return "", err
+	}
 	for _, dir := range rcDirs(opts) {
 		p := filepath.Join(dir, service)
 		if _, err := os.Stat(p); err == nil {

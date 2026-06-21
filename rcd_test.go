@@ -63,6 +63,7 @@ func TestErrorMessages(t *testing.T) {
 		err  error
 		want string
 	}{
+		{ErrInvalidServiceName, "invalid service name"},
 		{ErrServiceNotFound, "service not found"},
 		{ErrExecTimeout, "command timed out"},
 		{ErrInsufficientPermissions, "insufficient permissions"},
@@ -83,6 +84,7 @@ func TestErrorMessages(t *testing.T) {
 
 func TestErrorsAreDistinct(t *testing.T) {
 	sentinels := []error{
+		ErrInvalidServiceName,
 		ErrServiceNotFound,
 		ErrExecTimeout,
 		ErrInsufficientPermissions,
@@ -98,6 +100,39 @@ func TestErrorsAreDistinct(t *testing.T) {
 				t.Errorf("expected distinct errors, but %q == %q", a, b)
 			}
 		}
+	}
+}
+
+func TestValidateServiceName(t *testing.T) {
+	tests := []struct {
+		name    string
+		service string
+		wantErr bool
+	}{
+		{name: "simple", service: "sshd"},
+		{name: "hyphen", service: "nginx-worker"},
+		{name: "underscore", service: "postgresql_enable"},
+		{name: "empty", service: "", wantErr: true},
+		{name: "dot", service: ".", wantErr: true},
+		{name: "parent", service: "..", wantErr: true},
+		{name: "relative path", service: "../sshd", wantErr: true},
+		{name: "subdirectory", service: "local/sshd", wantErr: true},
+		{name: "backslash", service: `local\sshd`, wantErr: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validateServiceName(tt.service)
+			if tt.wantErr {
+				if !errors.Is(err, ErrInvalidServiceName) {
+					t.Fatalf("validateServiceName(%q) error = %v, want ErrInvalidServiceName", tt.service, err)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("validateServiceName(%q) error = %v, want nil", tt.service, err)
+			}
+		})
 	}
 }
 

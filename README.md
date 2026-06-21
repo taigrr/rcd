@@ -38,6 +38,7 @@ All functions return predefined error types for common failure cases:
 
 | Error | Meaning |
 |-------|---------|
+| `ErrInvalidServiceName` | The service name is empty or contains path separators |
 | `ErrServiceNotFound` | The rc.d script doesn't exist |
 | `ErrExecTimeout` | Context was cancelled before completion |
 | `ErrInsufficientPermissions` | Need root/elevated privileges |
