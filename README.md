@@ -5,7 +5,7 @@ This library provides idiomatic Go bindings for managing BSD rc.d services, maki
 
 It wraps `service(8)` and `sysrc(8)` in a structured, type-safe API — no more shelling out and parsing output by hand.
 
-If your system isn't running rc.d, this library will compile but all functions will be no-ops.
+If your system isn't running rc.d, this library will compile and service operations will validate service names, then otherwise return no-op zero values.
 
 ## What is rc.d
 
@@ -103,7 +103,7 @@ func main() {
 
 ## Cross-platform compilation
 
-On non-BSD platforms, all functions compile and return zero values. This allows you to use the library in cross-platform projects without build tags in your own code.
+On non-BSD platforms, all functions compile and service operations validate service names before returning no-op zero values. This allows you to use the library in cross-platform projects without build tags in your own code while still catching invalid service identifiers consistently.
 
 ## License
 

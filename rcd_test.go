@@ -314,16 +314,60 @@ func TestEmptyServiceName(t *testing.T) {
 	ctx := context.Background()
 	opts := Options{}
 
-	// On non-BSD, empty service name should still work (no-op).
-	if err := Start(ctx, "", opts); err != nil {
-		t.Errorf("Start() with empty name = %v, want nil on non-BSD", err)
+	if err := Start(ctx, "", opts); !errors.Is(err, ErrInvalidServiceName) {
+		t.Errorf("Start() with empty name = %v, want ErrInvalidServiceName", err)
 	}
 	active, err := IsActive(ctx, "", opts)
-	if err != nil {
-		t.Errorf("IsActive() with empty name error = %v, want nil on non-BSD", err)
+	if !errors.Is(err, ErrInvalidServiceName) {
+		t.Errorf("IsActive() with empty name error = %v, want ErrInvalidServiceName", err)
 	}
 	if active {
-		t.Error("IsActive() with empty name = true, want false on non-BSD")
+		t.Error("IsActive() with empty name = true, want false")
+	}
+}
+
+func TestInvalidServiceNamePublicAPIs(t *testing.T) {
+	ctx := context.Background()
+	opts := Options{}
+
+	errTests := []struct {
+		name string
+		call func() error
+	}{
+		{name: "Start", call: func() error { return Start(ctx, "../sshd", opts) }},
+		{name: "Stop", call: func() error { return Stop(ctx, "../sshd", opts) }},
+		{name: "Restart", call: func() error { return Restart(ctx, "../sshd", opts) }},
+		{name: "Enable", call: func() error { return Enable(ctx, "../sshd", opts) }},
+		{name: "Disable", call: func() error { return Disable(ctx, "../sshd", opts) }},
+		{name: "Mask", call: func() error { return Mask(ctx, "../sshd", opts) }},
+		{name: "Unmask", call: func() error { return Unmask(ctx, "../sshd", opts) }},
+		{name: "Reload", call: func() error { return Reload(ctx, "../sshd", opts) }},
+	}
+	for _, tt := range errTests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tt.call(); !errors.Is(err, ErrInvalidServiceName) {
+				t.Fatalf("%s() error = %v, want ErrInvalidServiceName", tt.name, err)
+			}
+		})
+	}
+
+	valueTests := []struct {
+		name string
+		call func() error
+	}{
+		{name: "Status", call: func() error { _, err := Status(ctx, "../sshd", opts); return err }},
+		{name: "IsActive", call: func() error { _, err := IsActive(ctx, "../sshd", opts); return err }},
+		{name: "IsEnabled", call: func() error { _, err := IsEnabled(ctx, "../sshd", opts); return err }},
+		{name: "IsMasked", call: func() error { _, err := IsMasked(ctx, "../sshd", opts); return err }},
+		{name: "RcVar", call: func() error { _, err := RcVar(ctx, "../sshd", opts); return err }},
+		{name: "ScriptPath", call: func() error { _, err := ScriptPath("../sshd", opts); return err }},
+	}
+	for _, tt := range valueTests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tt.call(); !errors.Is(err, ErrInvalidServiceName) {
+				t.Fatalf("%s() error = %v, want ErrInvalidServiceName", tt.name, err)
+			}
+		})
 	}
 }
 
