@@ -1,3 +1,4 @@
+[![CI](https://github.com/taigrr/rcd/actions/workflows/ci.yml/badge.svg)](https://github.com/taigrr/rcd/actions/workflows/ci.yml)
 [![PkgGoDev](https://pkg.go.dev/badge/github.com/taigrr/rcd)](https://pkg.go.dev/github.com/taigrr/rcd)
 # rcd
 
