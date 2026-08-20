@@ -115,6 +115,7 @@ func TestValidateServiceName(t *testing.T) {
 		{name: "empty", service: "", wantErr: true},
 		{name: "dot", service: ".", wantErr: true},
 		{name: "parent", service: "..", wantErr: true},
+		{name: "leading dash", service: "-v", wantErr: true},
 		{name: "relative path", service: "../sshd", wantErr: true},
 		{name: "subdirectory", service: "local/sshd", wantErr: true},
 		{name: "backslash", service: `local\sshd`, wantErr: true},
@@ -335,6 +336,7 @@ func TestInvalidServiceNamePublicAPIs(t *testing.T) {
 		call func() error
 	}{
 		{name: "Start", call: func() error { return Start(ctx, "../sshd", opts) }},
+		{name: "StartOptionLikeName", call: func() error { return Start(ctx, "-v", opts) }},
 		{name: "Stop", call: func() error { return Stop(ctx, "../sshd", opts) }},
 		{name: "Restart", call: func() error { return Restart(ctx, "../sshd", opts) }},
 		{name: "Enable", call: func() error { return Enable(ctx, "../sshd", opts) }},
@@ -356,6 +358,7 @@ func TestInvalidServiceNamePublicAPIs(t *testing.T) {
 		call func() error
 	}{
 		{name: "Status", call: func() error { _, err := Status(ctx, "../sshd", opts); return err }},
+		{name: "StatusOptionLikeName", call: func() error { _, err := Status(ctx, "-v", opts); return err }},
 		{name: "IsActive", call: func() error { _, err := IsActive(ctx, "../sshd", opts); return err }},
 		{name: "IsEnabled", call: func() error { _, err := IsEnabled(ctx, "../sshd", opts); return err }},
 		{name: "IsMasked", call: func() error { _, err := IsMasked(ctx, "../sshd", opts); return err }},
