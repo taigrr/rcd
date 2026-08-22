@@ -98,7 +98,9 @@ func List(ctx context.Context, opts Options) ([]Unit, error) {
 
 // ScriptPath returns the absolute path to the rc.d script for a service.
 // It checks /usr/local/etc/rc.d first (ports/packages), then /etc/rc.d (base).
-// Returns ErrServiceNotFound if the script doesn't exist.
+// Returns ErrServiceNotFound if no script exists in any directory. If a
+// directory cannot be searched (e.g. a permission error), that error is
+// returned instead of ErrServiceNotFound.
 func ScriptPath(service string, opts Options) (string, error) {
 	return scriptPath(service, opts)
 }
