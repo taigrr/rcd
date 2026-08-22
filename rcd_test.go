@@ -3,6 +3,7 @@ package rcd
 import (
 	"context"
 	"errors"
+	"io/fs"
 	"os"
 	"testing"
 	"time"
@@ -131,6 +132,65 @@ func TestValidateServiceName(t *testing.T) {
 			}
 			if err != nil {
 				t.Fatalf("validateServiceName(%q) error = %v, want nil", tt.service, err)
+			}
+		})
+	}
+}
+
+func TestFindServiceScript(t *testing.T) {
+	tests := []struct {
+		name      string
+		statErrs  map[string]error
+		want      string
+		wantError error
+	}{
+		{
+			name: "finds first existing script",
+			statErrs: map[string]error{
+				"/etc/rc.d/sshd": nil,
+			},
+			want: "/etc/rc.d/sshd",
+		},
+		{
+			name: "continues past missing script",
+			statErrs: map[string]error{
+				"/usr/local/etc/rc.d/sshd": fs.ErrNotExist,
+				"/etc/rc.d/sshd":           nil,
+			},
+			want: "/etc/rc.d/sshd",
+		},
+		{
+			name: "returns non-missing stat errors",
+			statErrs: map[string]error{
+				"/usr/local/etc/rc.d/sshd": fs.ErrPermission,
+				"/etc/rc.d/sshd":           nil,
+			},
+			wantError: fs.ErrPermission,
+		},
+		{
+			name: "returns service not found when all scripts are missing",
+			statErrs: map[string]error{
+				"/usr/local/etc/rc.d/sshd": fs.ErrNotExist,
+				"/etc/rc.d/sshd":           fs.ErrNotExist,
+			},
+			wantError: ErrServiceNotFound,
+		},
+	}
+
+	dirs := []string{"/usr/local/etc/rc.d", "/etc/rc.d"}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := findServiceScript("sshd", dirs, func(path string) (os.FileInfo, error) {
+				if err, ok := tt.statErrs[path]; ok {
+					return nil, err
+				}
+				return nil, fs.ErrNotExist
+			})
+			if !errors.Is(err, tt.wantError) {
+				t.Fatalf("findServiceScript() error = %v, want %v", err, tt.wantError)
+			}
+			if got != tt.want {
+				t.Fatalf("findServiceScript() = %q, want %q", got, tt.want)
 			}
 		})
 	}

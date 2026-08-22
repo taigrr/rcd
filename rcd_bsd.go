@@ -35,13 +35,7 @@ func scriptPath(service string, opts Options) (string, error) {
 	if err := validateServiceName(service); err != nil {
 		return "", err
 	}
-	for _, dir := range rcDirs(opts) {
-		p := filepath.Join(dir, service)
-		if _, err := os.Stat(p); err == nil {
-			return p, nil
-		}
-	}
-	return "", fmt.Errorf("%w: %s", ErrServiceNotFound, service)
+	return findServiceScript(service, rcDirs(opts), os.Stat)
 }
 
 func execute(ctx context.Context, name string, args ...string) (string, string, int, error) {
