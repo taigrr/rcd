@@ -161,10 +161,18 @@ func TestFindServiceScript(t *testing.T) {
 			want: "/etc/rc.d/sshd",
 		},
 		{
-			name: "returns non-missing stat errors",
+			name: "found in later dir wins over hard error in earlier dir",
 			statErrs: map[string]error{
 				"/usr/local/etc/rc.d/sshd": fs.ErrPermission,
 				"/etc/rc.d/sshd":           nil,
+			},
+			want: "/etc/rc.d/sshd",
+		},
+		{
+			name: "surfaces first hard error when no script is found",
+			statErrs: map[string]error{
+				"/usr/local/etc/rc.d/sshd": fs.ErrPermission,
+				"/etc/rc.d/sshd":           fs.ErrNotExist,
 			},
 			wantError: fs.ErrPermission,
 		},
