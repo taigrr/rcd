@@ -5,8 +5,6 @@ package rcd
 import (
 	"bytes"
 	"context"
-	"errors"
-	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -63,22 +61,6 @@ func execute(ctx context.Context, name string, args ...string) (string, string, 
 	}
 
 	return stdout.String(), stderr.String(), code, nil
-}
-
-func filterErr(stderr string) error {
-	lower := strings.ToLower(stderr)
-	switch {
-	case strings.Contains(lower, "not found"):
-		return errors.Join(ErrServiceNotFound, fmt.Errorf("stderr: %s", stderr))
-	case strings.Contains(lower, "does not exist"):
-		return errors.Join(ErrServiceNotFound, fmt.Errorf("stderr: %s", stderr))
-	case strings.Contains(lower, "permission denied"):
-		return errors.Join(ErrInsufficientPermissions, fmt.Errorf("stderr: %s", stderr))
-	case strings.Contains(lower, "not permitted"):
-		return errors.Join(ErrInsufficientPermissions, fmt.Errorf("stderr: %s", stderr))
-	default:
-		return nil
-	}
 }
 
 func serviceCmd(ctx context.Context, service, action string) (string, string, int, error) {
