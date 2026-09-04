@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io/fs"
 	"os"
+	"strings"
 	"testing"
 	"time"
 )
@@ -101,6 +102,51 @@ func TestErrorsAreDistinct(t *testing.T) {
 				t.Errorf("expected distinct errors, but %q == %q", a, b)
 			}
 		}
+	}
+}
+
+func TestFilterErr(t *testing.T) {
+	tests := []struct {
+		name      string
+		stderr    string
+		wantError error
+	}{
+		{
+			name:      "not found",
+			stderr:    "service: not found",
+			wantError: ErrServiceNotFound,
+		},
+		{
+			name:      "does not exist",
+			stderr:    "sshd does not exist in /etc/rc.d",
+			wantError: ErrServiceNotFound,
+		},
+		{
+			name:      "permission denied",
+			stderr:    "permission denied",
+			wantError: ErrInsufficientPermissions,
+		},
+		{
+			name:      "not permitted",
+			stderr:    "operation not permitted",
+			wantError: ErrInsufficientPermissions,
+		},
+		{
+			name:   "unrecognized",
+			stderr: "service exited with status 1",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := filterErr(tt.stderr)
+			if !errors.Is(err, tt.wantError) {
+				t.Fatalf("filterErr(%q) error = %v, want %v", tt.stderr, err, tt.wantError)
+			}
+			if tt.wantError != nil && !strings.Contains(err.Error(), tt.stderr) {
+				t.Fatalf("filterErr(%q) error = %q, want stderr included", tt.stderr, err)
+			}
+		})
 	}
 }
 
