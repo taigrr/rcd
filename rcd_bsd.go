@@ -151,11 +151,7 @@ func isEnabled(ctx context.Context, service string, opts Options) (bool, error) 
 		return false, ErrSysrcNotFound
 	}
 	stdout, _, _, err := execute(ctx, sysrcBin, "-n", rcVarName(service))
-	if err != nil {
-		// Variable not set means not enabled.
-		return false, nil
-	}
-	return strings.EqualFold(strings.TrimSpace(stdout), "yes"), nil
+	return parseEnabledValue(stdout, err)
 }
 
 func mask(_ context.Context, service string, opts Options) error {

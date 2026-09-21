@@ -150,6 +150,52 @@ func TestFilterErr(t *testing.T) {
 	}
 }
 
+func TestParseEnabledValue(t *testing.T) {
+	tests := []struct {
+		name      string
+		stdout    string
+		err       error
+		want      bool
+		wantError error
+	}{
+		{
+			name:   "yes",
+			stdout: "YES\n",
+			want:   true,
+		},
+		{
+			name:   "no",
+			stdout: "NO\n",
+		},
+		{
+			name: "unset variable",
+			err:  errors.New("unknown variable"),
+		},
+		{
+			name:      "permission error",
+			err:       ErrInsufficientPermissions,
+			wantError: ErrInsufficientPermissions,
+		},
+		{
+			name:      "timeout",
+			err:       ErrExecTimeout,
+			wantError: ErrExecTimeout,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := parseEnabledValue(tt.stdout, tt.err)
+			if !errors.Is(err, tt.wantError) {
+				t.Fatalf("parseEnabledValue() error = %v, want %v", err, tt.wantError)
+			}
+			if got != tt.want {
+				t.Fatalf("parseEnabledValue() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestValidateServiceName(t *testing.T) {
 	tests := []struct {
 		name    string
