@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io/fs"
 	"os"
+	"strings"
 	"testing"
 	"time"
 )
@@ -101,6 +102,97 @@ func TestErrorsAreDistinct(t *testing.T) {
 				t.Errorf("expected distinct errors, but %q == %q", a, b)
 			}
 		}
+	}
+}
+
+func TestFilterErr(t *testing.T) {
+	tests := []struct {
+		name      string
+		stderr    string
+		wantError error
+	}{
+		{
+			name:      "not found",
+			stderr:    "service: not found",
+			wantError: ErrServiceNotFound,
+		},
+		{
+			name:      "does not exist",
+			stderr:    "sshd does not exist in /etc/rc.d",
+			wantError: ErrServiceNotFound,
+		},
+		{
+			name:      "permission denied",
+			stderr:    "permission denied",
+			wantError: ErrInsufficientPermissions,
+		},
+		{
+			name:      "not permitted",
+			stderr:    "operation not permitted",
+			wantError: ErrInsufficientPermissions,
+		},
+		{
+			name:   "unrecognized",
+			stderr: "service exited with status 1",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := filterErr(tt.stderr)
+			if !errors.Is(err, tt.wantError) {
+				t.Fatalf("filterErr(%q) error = %v, want %v", tt.stderr, err, tt.wantError)
+			}
+			if tt.wantError != nil && !strings.Contains(err.Error(), tt.stderr) {
+				t.Fatalf("filterErr(%q) error = %q, want stderr included", tt.stderr, err)
+			}
+		})
+	}
+}
+
+func TestParseEnabledValue(t *testing.T) {
+	tests := []struct {
+		name      string
+		stdout    string
+		err       error
+		want      bool
+		wantError error
+	}{
+		{
+			name:   "yes",
+			stdout: "YES\n",
+			want:   true,
+		},
+		{
+			name:   "no",
+			stdout: "NO\n",
+		},
+		{
+			name: "unset variable",
+			err:  errors.New("unknown variable"),
+		},
+		{
+			name:      "permission error",
+			err:       ErrInsufficientPermissions,
+			wantError: ErrInsufficientPermissions,
+		},
+		{
+			name:      "timeout",
+			err:       ErrExecTimeout,
+			wantError: ErrExecTimeout,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := parseEnabledValue(tt.stdout, tt.err)
+			if !errors.Is(err, tt.wantError) {
+				t.Fatalf("parseEnabledValue() error = %v, want %v", err, tt.wantError)
+			}
+			if got != tt.want {
+				t.Fatalf("parseEnabledValue() = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }
 
