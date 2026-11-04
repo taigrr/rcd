@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io/fs"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -231,6 +232,14 @@ func TestValidateServiceName(t *testing.T) {
 }
 
 func TestFindServiceScript(t *testing.T) {
+	script := filepath.Join(t.TempDir(), "sshd")
+	if err := os.WriteFile(script, nil, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	info, err := os.Stat(script)
+	if err != nil {
+		t.Fatal(err)
+	}
 	tests := []struct {
 		name      string
 		statErrs  map[string]error
@@ -283,7 +292,7 @@ func TestFindServiceScript(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := findServiceScript("sshd", dirs, func(path string) (os.FileInfo, error) {
 				if err, ok := tt.statErrs[path]; ok {
-					return nil, err
+					return info, err
 				}
 				return nil, fs.ErrNotExist
 			})
@@ -595,5 +604,44 @@ func TestUnmaskedMode(t *testing.T) {
 				t.Fatalf("unmaskedMode(%#o) = %#o, want %#o", tt.mode, got, tt.want)
 			}
 		})
+	}
+}
+
+func TestFindServiceScriptSkipsNonRegularFiles(t *testing.T) {
+	first, second := t.TempDir(), t.TempDir()
+	name := "sshd"
+	if err := os.Mkdir(filepath.Join(first, name), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	got, err := findServiceScript(name, []string{first}, os.Stat)
+	if !errors.Is(err, ErrServiceNotFound) || got != "" {
+		t.Fatalf("directory lookup = %q, %v; want service not found", got, err)
+	}
+	script := filepath.Join(second, name)
+	if err := os.WriteFile(script, nil, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	got, err = findServiceScript(name, []string{first, second}, os.Stat)
+	if err != nil || got != script {
+		t.Fatalf("fallback lookup = %q, %v; want %q", got, err, script)
+	}
+	// Stat follows symlinks: links to scripts remain valid, links to directories do not.
+	linkDir := t.TempDir()
+	link := filepath.Join(linkDir, name)
+	if err := os.Symlink(first, link); err != nil {
+		t.Fatal(err)
+	}
+	got, err = findServiceScript(name, []string{linkDir, second}, os.Stat)
+	if err != nil || got != script {
+		t.Fatalf("directory symlink lookup = %q, %v; want %q", got, err, script)
+	}
+	scriptLinks := t.TempDir()
+	scriptLink := filepath.Join(scriptLinks, name)
+	if err := os.Symlink(script, scriptLink); err != nil {
+		t.Fatal(err)
+	}
+	got, err = findServiceScript(name, []string{scriptLinks}, os.Stat)
+	if err != nil || got != scriptLink {
+		t.Fatalf("script symlink lookup = %q, %v; want %q", got, err, scriptLink)
 	}
 }
