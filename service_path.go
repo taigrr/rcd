@@ -14,8 +14,10 @@ func findServiceScript(service string, dirs []string, stat statFunc) (string, er
 	var firstErr error
 	for _, dir := range dirs {
 		p := filepath.Join(dir, service)
-		if _, err := stat(p); err == nil {
-			return p, nil
+		if info, err := stat(p); err == nil {
+			if info.Mode().IsRegular() {
+				return p, nil
+			}
 		} else if !errors.Is(err, fs.ErrNotExist) && firstErr == nil {
 			firstErr = err
 		}
