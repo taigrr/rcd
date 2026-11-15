@@ -14,7 +14,8 @@ var (
 	ErrServiceNotFound = errors.New("service not found")
 
 	// ErrExecTimeout is returned when the provided context was cancelled
-	// before the command finished execution.
+	// before the command finished execution. The returned error also wraps
+	// context.Canceled or context.DeadlineExceeded for errors.Is checks.
 	ErrExecTimeout = errors.New("command timed out")
 
 	// ErrInsufficientPermissions is returned when the command requires
