@@ -50,7 +50,9 @@ All functions return predefined error types for common failure cases:
 
 ## Context support
 
-All calls support Go's `context` functionality, allowing timeouts and cancellation.
+Command execution on BSD supports timeouts and cancellation.
+Canceled commands wrap both `ErrExecTimeout` and the context cause (`context.Canceled` or `context.DeadlineExceeded`), so callers can check either with `errors.Is`.
+Non-BSD service operations remain no-ops after service-name validation.
 
 ## Simple example
 
